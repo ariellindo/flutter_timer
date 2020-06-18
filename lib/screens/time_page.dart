@@ -1,47 +1,52 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_timer/bloc/timer/timer_bloc.dart';
+import 'package:flutter_timer/widgets/actions.dart';
 
-class TimerPage extends StatefulWidget {
-  TimerPage({Key key, this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  _TimerPageState createState() => _TimerPageState();
-}
-
-class _TimerPageState extends State<TimerPage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
+class TimerPage extends StatelessWidget {
+  static const TextStyle timerTextStyle = TextStyle(
+    fontSize: 60,
+    fontWeight: FontWeight.bold,
+  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text('Flutter Timer'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 0.0),
+            child: Center(
+              child: BlocBuilder<TimerBloc, TimerState>( // set the bloc builder with the bloc and state
+                builder: (context, state) {
+                  final String minutesStr = ((state.duration / 60) % 60)
+                      .floor()
+                      .toString()
+                      .padLeft(2, '0');
+                  final String secondStr =
+                      (state.duration % 60).floor().toString().padLeft(2, '0');
+
+                  return Text(
+                    '$minutesStr:$secondStr',
+                    style: timerTextStyle,
+                  );
+                },
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
+          ),
+          BlocBuilder<TimerBloc, TimerState>(
+            condition: (previousState, state) =>
+                state.runtimeType != previousState.runtimeType,
+            builder: (context, state) => Actions(),
+          ),
+        ],
       ),
     );
   }
