@@ -2,15 +2,16 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter_timer/helper/ticker.dart';
 import 'package:meta/meta.dart';
+
+import 'package:flutter_timer/helper/ticker.dart';
 
 part 'timer_event.dart';
 part 'timer_state.dart';
 
 class TimerBloc extends Bloc<TimerEvent, TimerState> {
-  final int _duration = 60;
   final Ticker _ticker;
+  final int _duration = 60;
 
   StreamSubscription<int> _tickerSubscription;
 
@@ -19,23 +20,28 @@ class TimerBloc extends Bloc<TimerEvent, TimerState> {
         _ticker = ticker;
 
   @override
-  TimerState get initialState => TimerInitialState(_duration);
+  TimerState get initialState => TimerInitial(_duration);
 
-  // validate the current triggered events to map them into states
+  @override
+  void onTransition(Transition<TimerEvent, TimerState> transition) {
+    print(transition);
+    super.onTransition(transition);
+  }
+
   @override
   Stream<TimerState> mapEventToState(
     TimerEvent event,
   ) async* {
-    if (event is TimerStartedEvent) {
+    if (event is TimerStarted) {
       yield* _mapTimerStartedToState(event);
-    } else if (event is TimerTickedEvent) {
-      yield* _mapTimerTickedToState(event);
-    } else if (event is TimerPausedEvent) {
+    } else if (event is TimerPaused) {
       yield* _mapTimerPausedToState(event);
-    } else if (event is TimerResumedEvent) {
-      yield* _mapTimerResumeToState(event);
-    } else if (event is TimerResetEvent) {
+    } else if (event is TimerResumed) {
+      yield* _mapTimerResumedToState(event);
+    } else if (event is TimerReset) {
       yield* _mapTimerResetToState(event);
+    } else if (event is TimerTicked) {
+      yield* _mapTimerTickedToState(event);
     }
   }
 
@@ -45,36 +51,34 @@ class TimerBloc extends Bloc<TimerEvent, TimerState> {
     return super.close();
   }
 
-  Stream<TimerState> _mapTimerStartedToState(TimerStartedEvent start) async* {
-    yield TimerRunInProgressState(start.duration);
+  Stream<TimerState> _mapTimerStartedToState(TimerStarted start) async* {
+     yield TimerRunInProgress(start.duration);
     _tickerSubscription?.cancel();
     _tickerSubscription = _ticker
         .tick(ticks: start.duration)
-        .listen((duration) => add(TimerTickedEvent(duration: duration)));
+        .listen((duration) => add(TimerTicked(duration: duration)));
   }
 
-  Stream<TimerState> _mapTimerTickedToState(TimerTickedEvent tick) async* {
-    yield tick.duration > 0
-        ? TimerRunInProgressState(tick.duration)
-        : TimerRunCompleteState();
-  }
-
-  Stream<TimerState> _mapTimerPausedToState(TimerPausedEvent pause) async* {
-    if (state is TimerRunInProgressState) {
+  Stream<TimerState> _mapTimerPausedToState(TimerPaused pause) async* {
+    if (state is TimerRunInProgress) {
       _tickerSubscription?.pause();
-      yield TimerRunPauseState(state.duration);
+      yield TimerRunPause(state.duration);
     }
   }
 
-  Stream<TimerState> _mapTimerResumeToState(TimerResumedEvent resume) async* {
-    if (state is TimerRunPauseState) {
+  Stream<TimerState> _mapTimerResumedToState(TimerResumed resume) async* {
+    if (state is TimerRunPause) {
       _tickerSubscription?.resume();
-      yield TimerRunInProgressState(state.duration);
+      yield TimerRunInProgress(state.duration);
     }
   }
 
-  Stream<TimerState> _mapTimerResetToState(TimerResetEvent reset) async* {
-    _tickerSubscription.cancel();
-    yield TimerInitialState(_duration);
+  Stream<TimerState> _mapTimerResetToState(TimerReset reset) async* {
+    _tickerSubscription?.cancel();
+    yield TimerInitial(_duration);
+  }
+
+  Stream<TimerState> _mapTimerTickedToState(TimerTicked tick) async* {
+    yield tick.duration > 0 ? TimerRunInProgress(tick.duration) : TimerRunComplete();
   }
 }
