@@ -41,6 +41,7 @@ class TimerPage extends StatelessWidget {
               ),
             ),
           ),
+          SizedBox(height: 50.0),
           BlocBuilder<TimerBloc, TimerState>(
             condition: (previousState, state) =>
                 state.runtimeType != previousState.runtimeType,
